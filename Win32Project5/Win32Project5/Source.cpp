@@ -18,6 +18,11 @@ int xPos = 0, yPos = 0, xPos0, yPos0, zPos = 0;
 // the WindowProc function prototype
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+int func() {
+	
+	return 1, 2, 3, 4, 5;
+}
+
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,

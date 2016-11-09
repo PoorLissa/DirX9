@@ -13,23 +13,25 @@
 // --------------------------------------------------------------------------------------
 
 // global declarations
-LPDIRECT3D9		  d3d;		// the pointer to our Direct3D interface
-LPDIRECT3DDEVICE9 d3ddev;   // the pointer to the device class
+LPDIRECT3D9		  d3d;										// the pointer to our Direct3D interface
+LPDIRECT3DDEVICE9 d3ddev;									// the pointer to the device class
 
 // function prototypes
-void initD3D(HWND hWnd);    // sets up and initializes Direct3D
-void render_frame(void);    // renders a single frame
-void cleanD3D(void);		// closes Direct3D and releases memory
-void init_graphics(void);   // 3D declarations
-void init_light(void);		// sets up the light and the material
+void initD3D(HWND hWnd);									// sets up and initializes Direct3D
+void render_frame(void);									// renders a single frame
+void cleanD3D(void);										// closes Direct3D and releases memory
+void init_graphics(void);									// 3D declarations
+void init_directional_light();								// sets up the directional light and the material
+void init_point_light(D3DXCOLOR, D3DXVECTOR3, int);			// sets up the point light and the material
+void init_spot_light(D3DXCOLOR, D3DXVECTOR3, D3DXVECTOR3, int);
 
 //#define CUSTOMFVF (D3DFVF_XYZRHW | D3DFVF_DIFFUSE)
 //#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
 #define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_NORMAL)
 struct CUSTOMVERTEX
 {
-    FLOAT x, y, z, rhw;		// from the D3DFVF_XYZRHW flag
-    //DWORD color;			// from the D3DFVF_DIFFUSE flag
+    FLOAT x, y, z, rhw;					// from the D3DFVF_XYZRHW flag
+    //DWORD color;						// from the D3DFVF_DIFFUSE flag
 	D3DVECTOR Normal;
 };
 
@@ -76,9 +78,12 @@ void initD3D(HWND hWnd, int Width, int Height)
 	d3ddev->SetRenderState(D3DRS_ZENABLE, true);							// turn on the z-buffer
 	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);					// show both sides of the triangles
 	d3ddev->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));		// ambient light
+	d3ddev->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);					// automatically handle the normals depending on scale (scaling problem lighness fix)
 
 	init_graphics();														// call the function to initialize the triangle
-	init_light();
+	//init_directional_light();
+	//init_point_light(D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f), D3DXVECTOR3(0.0f, 5.0f, 0.0f));
+	//init_spot_light(D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f), D3DXVECTOR3(-12.0f, 0.0f, 30.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f));
 }
 
 // this is the function that cleans up Direct3D and COM
@@ -175,24 +180,88 @@ void init_graphics(void)
 }
 
 // this is the function that sets up the lights and materials
-void init_light(void)
+void init_directional_light(void)
 {
-	D3DLIGHT9 light;    // create the light struct
-	D3DMATERIAL9 material;    // create the material struct
+	D3DLIGHT9 light;											// create the light struct
+	D3DMATERIAL9 material;										// create the material struct
 
-	ZeroMemory(&light, sizeof(light));    // clear out the light struct for use
-	light.Type = D3DLIGHT_DIRECTIONAL;    // make the light type 'directional light'
-	light.Diffuse = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);    // set the light's color
+	ZeroMemory(&light, sizeof(light));							// clear out the light struct for use
+	light.Type = D3DLIGHT_DIRECTIONAL;							// make the light type 'directional light'
+	light.Diffuse = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);			// set the light's color
 	light.Direction = D3DXVECTOR3(-1.0f, -0.3f, -1.0f);
 
-	d3ddev->SetLight(0, &light);    // send the light struct properties to light #0
-	d3ddev->LightEnable(0, TRUE);    // turn on light #0
+	d3ddev->SetLight(0, &light);								// send the light struct properties to light #0
+	d3ddev->LightEnable(0, TRUE);								// turn on light #0
 
-	ZeroMemory(&material, sizeof(D3DMATERIAL9));    // clear out the struct for use
-	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);    // set diffuse color to white
-	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);    // set ambient color to white
+	ZeroMemory(&material, sizeof(D3DMATERIAL9));				// clear out the struct for use
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);		// set diffuse color to white
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);		// set ambient color to white
 
-	d3ddev->SetMaterial(&material);    // set the globably-used material to &material
+	d3ddev->SetMaterial(&material);								// set the globably-used material to &material
+}
+
+void init_point_light(D3DXCOLOR Color, D3DXVECTOR3 Vector, int LightNo = -1)
+{
+	static unsigned int lightNo = 500;
+	D3DLIGHT9 light;
+	D3DMATERIAL9 material;
+
+	if (LightNo >= 0)
+		lightNo = LightNo;
+
+	ZeroMemory(&light, sizeof(light));
+	light.Type = D3DLIGHT_POINT;		// make the light type 'point light'
+	light.Diffuse = Color;
+	light.Position = Vector;
+	light.Range = 100.0f;				// a range of 100
+	light.Attenuation0 = 0.0f;			// no constant inverse attenuation
+	light.Attenuation1 = 0.125f;		// only .125 inverse attenuation
+	light.Attenuation2 = 0.0f;			// no square inverse attenuation
+
+	d3ddev->SetLight(lightNo, &light);
+	d3ddev->LightEnable(lightNo, TRUE);
+
+	ZeroMemory(&material, sizeof(D3DMATERIAL9));
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+
+	d3ddev->SetMaterial(&material);
+
+	lightNo++;
+}
+
+void init_spot_light(D3DXCOLOR Color, D3DXVECTOR3 VectorPos, D3DXVECTOR3 VectorDir, int LightNo = -1)
+{
+	static unsigned int lightNo = 1000;
+	D3DLIGHT9 light;
+	D3DMATERIAL9 material;
+
+	if (LightNo >= 0)
+		lightNo = LightNo;
+
+	ZeroMemory(&light, sizeof(light));
+	light.Type = D3DLIGHT_SPOT;    // make the light type 'spot light'
+	light.Diffuse = Color;
+	light.Position = VectorPos;
+	light.Direction = VectorDir;
+	light.Range = 100.0f;    // a range of 100
+	light.Attenuation0 = 0.0f;    // no constant inverse attenuation
+	light.Attenuation1 = 0.125f;    // only .125 inverse attenuation
+	light.Attenuation2 = 0.0f;    // no square inverse attenuation
+	light.Phi = D3DXToRadian(40.0f);    // set the outer cone to 30 degrees
+	light.Theta = D3DXToRadian(20.0f);    // set the inner cone to 10 degrees
+	light.Falloff = 1.0f;    // use the typical falloff
+
+	d3ddev->SetLight(lightNo, &light);
+	d3ddev->LightEnable(lightNo, TRUE);
+
+	ZeroMemory(&material, sizeof(D3DMATERIAL9));
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+
+	d3ddev->SetMaterial(&material);
+
+	lightNo++;
 }
 
 // this is the function used to render a single frame
@@ -327,6 +396,13 @@ void render_frame3()
 	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 
+	init_point_light(D3DXCOLOR(0.5f, 0.9f, 0.5f, 1.0f), D3DXVECTOR3(0.0f + 10*sin(50 * index), 5.0f + 10*cos(50 * index), 5.0f), 10);
+	init_spot_light(D3DXCOLOR(0.9f, 0.5f, 0.5f, 1.0f),
+					//D3DXVECTOR3(0.0f + 10 * sin(50 * index), 5.0f + 10 * cos(50 * index), 5.0f),
+					D3DXVECTOR3(0.0f, 0.0f, 0.0f),
+					D3DXVECTOR3(0.0f + 10 * sin(50 * index), 5.0f + 10 * cos(50 * index), 0.0f),
+					11);
+
 	d3ddev->BeginScene();
 
 	{
@@ -336,7 +412,7 @@ void render_frame3()
 		// set the view transform
 		D3DXMATRIX matView;
 		D3DXMatrixLookAtLH(&matView,
-			&D3DXVECTOR3(0.0f, 8.0f, 50.0f + float(zPos)/50),   // the camera position + mouse wheel zoom
+			&D3DXVECTOR3(0.0f, 0.0f, 50.0f + float(zPos)/50),   // the camera position + mouse wheel zoom
 			&D3DXVECTOR3(0.0f, 0.0f, 0.0f),						// the look-at position
 			&D3DXVECTOR3(0.0f, 1.0f, 0.0f));					// the up direction
 		d3ddev->SetTransform(D3DTS_VIEW, &matView);
@@ -350,20 +426,25 @@ void render_frame3()
 			100.0f + float(zPos)/50);							// the far view-plane
 		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection);
 
-
-		D3DXMATRIX matRotateX;
-		D3DXMatrixRotationX(&matRotateX, float(yPos) / 300);
-
-		D3DXMATRIX matRotateY;
-		D3DXMatrixRotationY(&matRotateY, index + float(xPos) / 300);
-		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateX * matRotateY));
-
 		// select the vertex and index buffers to use
 		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
 		d3ddev->SetIndices(i_buffer);
 
-		// draw the cube
-		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
+		for (int i = 0; i < 23; i++) {
+
+			D3DXMATRIX matTranslation;
+			D3DXMatrixTranslation(&matTranslation, float(10 * sin(i*i)), float(10 * cos(i*i)), float(25*sin(i) + 25*cos(i)));
+
+			D3DXMATRIX matRotateX;
+			D3DXMatrixRotationX(&matRotateX, float(yPos) / 300);
+
+			D3DXMATRIX matRotateY;
+			D3DXMatrixRotationY(&matRotateY, index + float(xPos) / 300);
+			d3ddev->SetTransform(D3DTS_WORLD, &(matTranslation * matRotateX * matRotateY));
+
+			// draw the cube
+			d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
+		}
 	}
 
 	d3ddev->EndScene();
