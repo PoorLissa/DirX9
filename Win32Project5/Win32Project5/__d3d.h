@@ -26,13 +26,13 @@ void init_point_light(D3DXCOLOR, D3DXVECTOR3, int);			// sets up the point light
 void init_spot_light(D3DXCOLOR, D3DXVECTOR3, D3DXVECTOR3, int);
 
 //#define CUSTOMFVF (D3DFVF_XYZRHW | D3DFVF_DIFFUSE)
-//#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
-#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_NORMAL)
+#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
+//#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_NORMAL)
 struct CUSTOMVERTEX
 {
     FLOAT x, y, z, rhw;					// from the D3DFVF_XYZRHW flag
-    //DWORD color;						// from the D3DFVF_DIFFUSE flag
-	D3DVECTOR Normal;
+    DWORD color;						// from the D3DFVF_DIFFUSE flag
+	//D3DVECTOR Normal;
 };
 
 LPDIRECT3DVERTEXBUFFER9 v_buffer = NULL;
@@ -80,6 +80,11 @@ void initD3D(HWND hWnd, int Width, int Height)
 	d3ddev->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));		// ambient light
 	d3ddev->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);					// automatically handle the normals depending on scale (scaling problem lighness fix)
 
+	d3ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);					// Enable alpha blending
+	d3ddev->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);					// type of blending operation
+	d3ddev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+	d3ddev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
 	init_graphics();														// call the function to initialize the triangle
 	//init_directional_light();
 	//init_point_light(D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f), D3DXVECTOR3(0.0f, 5.0f, 0.0f));
@@ -101,35 +106,35 @@ void init_graphics(void)
     // create three vertices using the CUSTOMVERTEX struct built earlier
 	CUSTOMVERTEX vertices[] =
 	{
-		{ -3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },    // side 1
-		{ 3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
-		{ -3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
-		{ 3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+		{ -3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 1
+		{ 3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ -3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
 
-		{ -3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },    // side 2
-		{ -3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
-		{ 3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
-		{ 3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+		{ -3.0f, -3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 2
+		{ -3.0f, 3.0f, -3.0f,  D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, -3.0f, -3.0f,  D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, 3.0f, -3.0f,   D3DCOLOR_ARGB(255, 0, 0, 255), },
 
-		{ -3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },    // side 3
-		{ -3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
-		{ 3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },
-		{ 3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
+		{ -3.0f, 3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 3
+		{ -3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, 3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
 
-		{ -3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },    // side 4
-		{ 3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },
-		{ -3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
-		{ 3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
+		{ -3.0f, -3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 4
+		{ 3.0f, -3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ -3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
 
-		{ 3.0f, -3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },    // side 5
-		{ 3.0f, 3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },
-		{ 3.0f, -3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
-		{ 3.0f, 3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
+		{ 3.0f, -3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 5
+		{ 3.0f, 3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ 3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
 
-		{ -3.0f, -3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },    // side 6
-		{ -3.0f, -3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
-		{ -3.0f, 3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },
-		{ -3.0f, 3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
+		{ -3.0f, -3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },    // side 6
+		{ -3.0f, -3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ -3.0f, 3.0f, -3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
+		{ -3.0f, 3.0f, 3.0f, D3DCOLOR_ARGB(255, 0, 0, 255), },
 	};
 
 	short indices[] =
