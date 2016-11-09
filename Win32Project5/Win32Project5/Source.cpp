@@ -11,7 +11,8 @@
 #include <windowsx.h>
 #include "__d3d.h"
 
-
+// mouse coordinates
+int xPos = 0, yPos = 0, xPos0, yPos0, zPos = 0;
 
 
 // the WindowProc function prototype
@@ -128,6 +129,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 return 0;
 		} break;
 
+		// onKeyDown
 		case WM_KEYDOWN: {
 
             switch( LOWORD(wParam) )
@@ -138,6 +140,40 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 break;
 			}
 
+		} break;
+
+		// onMouseButtonDown
+		case WM_RBUTTONDOWN: {
+
+			// запоминаем координаты, где нажали кнопку мыши
+			xPos0 = GET_X_LPARAM(lParam);
+			yPos0 = GET_Y_LPARAM(lParam);
+
+		} break;
+
+		// onMouseButtonUp
+		case WM_MBUTTONUP: {
+		} break;
+
+		// onMouseMove
+		case WM_MOUSEMOVE: {
+
+			if (LOWORD(wParam) == MK_RBUTTON) {
+
+				int x = GET_X_LPARAM(lParam);
+				xPos += xPos0 - x;
+				xPos0 = x;
+
+				int y = GET_Y_LPARAM(lParam);
+				yPos += y - yPos0;
+				yPos0 = y;
+			}
+
+		} break;
+
+		case WM_MOUSEWHEEL: {
+		
+			zPos -= GET_WHEEL_DELTA_WPARAM(wParam);
 		} break;
     }
 

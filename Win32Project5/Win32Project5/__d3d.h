@@ -21,20 +21,23 @@ void initD3D(HWND hWnd);    // sets up and initializes Direct3D
 void render_frame(void);    // renders a single frame
 void cleanD3D(void);		// closes Direct3D and releases memory
 void init_graphics(void);   // 3D declarations
+void init_light(void);		// sets up the light and the material
 
 //#define CUSTOMFVF (D3DFVF_XYZRHW | D3DFVF_DIFFUSE)
-#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
-
+//#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
+#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_NORMAL)
 struct CUSTOMVERTEX
 {
     FLOAT x, y, z, rhw;		// from the D3DFVF_XYZRHW flag
-    DWORD color;			// from the D3DFVF_DIFFUSE flag
+    //DWORD color;			// from the D3DFVF_DIFFUSE flag
+	D3DVECTOR Normal;
 };
 
 LPDIRECT3DVERTEXBUFFER9 v_buffer = NULL;
 LPDIRECT3DINDEXBUFFER9  i_buffer = NULL;
 
 unsigned short NUM;
+extern int xPos, yPos, zPos;
 
 
 
@@ -69,30 +72,13 @@ void initD3D(HWND hWnd, int Width, int Height)
                       &d3dpp,
                       &d3ddev);
 
-	d3ddev->SetRenderState(D3DRS_LIGHTING, false);			// turn off the 3D lighting
-	d3ddev->SetRenderState(D3DRS_ZENABLE, true);			// turn on the z-buffer
-	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// show both sides of the triangles
+	d3ddev->SetRenderState(D3DRS_LIGHTING, true);							// turn off the 3D lighting
+	d3ddev->SetRenderState(D3DRS_ZENABLE, true);							// turn on the z-buffer
+	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);					// show both sides of the triangles
+	d3ddev->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));		// ambient light
 
-	init_graphics();										// call the function to initialize the triangle
-}
-
-// this is the function used to render a single frame
-void render_frame(int num)
-{
-    // clear the window to a deep blue
-	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
-
-	// clear our z-buffer
-	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
-
-	// begins the 3D scene
-    d3ddev->BeginScene();
-
-    // do 3D rendering on the back buffer here
-
-    d3ddev->EndScene();    // ends the 3D scene
-
-    d3ddev->Present(NULL, NULL, NULL, NULL);    // displays the created frame
+	init_graphics();														// call the function to initialize the triangle
+	init_light();
 }
 
 // this is the function that cleans up Direct3D and COM
@@ -110,41 +96,51 @@ void init_graphics(void)
     // create three vertices using the CUSTOMVERTEX struct built earlier
 	CUSTOMVERTEX vertices[] =
 	{
-/*
-		{  2.5f, -3.0f, 0.0f, D3DCOLOR_XRGB(0,   0, 255), },
-		{  0.0f,  3.0f, 0.0f, D3DCOLOR_XRGB(0, 255,   0), },
-		{ -2.5f, -3.0f, 0.0f, D3DCOLOR_XRGB(255, 0,   0), },
-*/
-/*
-		{ -3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ 3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), },
-		{ -3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
-		{ 3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 255), },
-*/
-		{ -3.0f, 3.0f, -3.0f, D3DCOLOR_XRGB(0, 0, 255), },    // vertex 0
-		{ 3.0f, 3.0f, -3.0f, D3DCOLOR_XRGB(0, 255, 0), },     // vertex 1
-		{ -3.0f, -3.0f, -3.0f, D3DCOLOR_XRGB(255, 0, 0), },   // 2
-		{ 3.0f, -3.0f, -3.0f, D3DCOLOR_XRGB(0, 255, 255), },  // 3
-		{ -3.0f, 3.0f, 3.0f, D3DCOLOR_XRGB(0, 0, 255), },     // ...
-		{ 3.0f, 3.0f, 3.0f, D3DCOLOR_XRGB(255, 0, 0), },
-		{ -3.0f, -3.0f, 3.0f, D3DCOLOR_XRGB(0, 255, 0), },
-		{ 3.0f, -3.0f, 3.0f, D3DCOLOR_XRGB(0, 255, 255), },
+		{ -3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },    // side 1
+		{ 3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+		{ -3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+		{ 3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+
+		{ -3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },    // side 2
+		{ -3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+		{ 3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+		{ 3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+
+		{ -3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },    // side 3
+		{ -3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
+		{ 3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },
+		{ 3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
+
+		{ -3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },    // side 4
+		{ 3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },
+		{ -3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
+		{ 3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
+
+		{ 3.0f, -3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },    // side 5
+		{ 3.0f, 3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },
+		{ 3.0f, -3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
+		{ 3.0f, 3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
+
+		{ -3.0f, -3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },    // side 6
+		{ -3.0f, -3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
+		{ -3.0f, 3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },
+		{ -3.0f, 3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
 	};
 
 	short indices[] =
 	{
 		0, 1, 2,    // side 1
 		2, 1, 3,
-		4, 0, 6,    // side 2
-		6, 0, 2,
-		7, 5, 6,    // side 3
-		6, 5, 4,
-		3, 1, 7,    // side 4
-		7, 1, 5,
-		4, 5, 0,    // side 5
-		0, 5, 1,
-		3, 7, 2,    // side 6
-		2, 7, 6,
+		4, 5, 6,    // side 2
+		6, 5, 7,
+		8, 9, 10,    // side 3
+		10, 9, 11,
+		12, 13, 14,    // side 4
+		14, 13, 15,
+		16, 17, 18,    // side 5
+		18, 17, 19,
+		20, 21, 22,    // side 6
+		22, 21, 23,
 	};
 
 	NUM = sizeof(vertices) / sizeof(vertices[0]);
@@ -178,8 +174,48 @@ void init_graphics(void)
 	i_buffer->Unlock();
 }
 
+// this is the function that sets up the lights and materials
+void init_light(void)
+{
+	D3DLIGHT9 light;    // create the light struct
+	D3DMATERIAL9 material;    // create the material struct
+
+	ZeroMemory(&light, sizeof(light));    // clear out the light struct for use
+	light.Type = D3DLIGHT_DIRECTIONAL;    // make the light type 'directional light'
+	light.Diffuse = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f);    // set the light's color
+	light.Direction = D3DXVECTOR3(-1.0f, -0.3f, -1.0f);
+
+	d3ddev->SetLight(0, &light);    // send the light struct properties to light #0
+	d3ddev->LightEnable(0, TRUE);    // turn on light #0
+
+	ZeroMemory(&material, sizeof(D3DMATERIAL9));    // clear out the struct for use
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);    // set diffuse color to white
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);    // set ambient color to white
+
+	d3ddev->SetMaterial(&material);    // set the globably-used material to &material
+}
+
 // this is the function used to render a single frame
-void render_frame(void)
+void render_frame0(int num)
+{
+	// clear the window to a deep blue
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
+
+	// clear our z-buffer
+	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+
+	// begins the 3D scene
+	d3ddev->BeginScene();
+
+	// do 3D rendering on the back buffer here
+
+	d3ddev->EndScene();    // ends the 3D scene
+
+	d3ddev->Present(NULL, NULL, NULL, NULL);    // displays the created frame
+}
+
+// this is the function used to render a single frame
+void render_frame1()
 {
     d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
 
@@ -199,7 +235,7 @@ void render_frame(void)
     d3ddev->Present(NULL, NULL, NULL, NULL);
 }
 
-void render_frame3(void)
+void render_frame2()
 {
 	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
 	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
@@ -281,4 +317,56 @@ void render_frame3(void)
 	d3ddev->Present(NULL, NULL, NULL, NULL);
 
 	return;
+}
+
+void render_frame3()
+{
+	static float index = 0.0;
+	index += 0.002;
+
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+
+	d3ddev->BeginScene();
+
+	{
+		// select which vertex format we are using
+		d3ddev->SetFVF(CUSTOMFVF);
+
+		// set the view transform
+		D3DXMATRIX matView;
+		D3DXMatrixLookAtLH(&matView,
+			&D3DXVECTOR3(0.0f, 8.0f, 50.0f + float(zPos)/50),   // the camera position + mouse wheel zoom
+			&D3DXVECTOR3(0.0f, 0.0f, 0.0f),						// the look-at position
+			&D3DXVECTOR3(0.0f, 1.0f, 0.0f));					// the up direction
+		d3ddev->SetTransform(D3DTS_VIEW, &matView);
+
+		// set the projection transform
+		D3DXMATRIX matProjection;
+		D3DXMatrixPerspectiveFovLH(&matProjection,
+			D3DXToRadian(45),
+			(float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
+			1.0f,												// the near view-plane
+			100.0f + float(zPos)/50);							// the far view-plane
+		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection);
+
+
+		D3DXMATRIX matRotateX;
+		D3DXMatrixRotationX(&matRotateX, float(yPos) / 300);
+
+		D3DXMATRIX matRotateY;
+		D3DXMatrixRotationY(&matRotateY, index + float(xPos) / 300);
+		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateX * matRotateY));
+
+		// select the vertex and index buffers to use
+		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
+		d3ddev->SetIndices(i_buffer);
+
+		// draw the cube
+		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
+	}
+
+	d3ddev->EndScene();
+
+	d3ddev->Present(NULL, NULL, NULL, NULL);
 }
